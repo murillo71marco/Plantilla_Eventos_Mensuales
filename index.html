@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario de Reservaciones - Quinta y Palapa</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header / Barra Superior -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-amber-500 p-2.5 rounded-xl text-slate-900 shadow-lg">
+                    <i data-lucide="palmtree" class="w-7 h-7"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight">Palapa El Muchacho Alegre</h1>
+                    <p class="text-xs text-slate-400">Sistema de Control y Calendario de Reservaciones</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <button onclick="app.exportData()" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-2 rounded-lg text-sm font-medium transition border border-slate-700 shadow-sm">
+                    <i data-lucide="download" class="w-4 h-4"></i> Exportar Datos
+                </button>
+                <button onclick="app.openNewModal()" class="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-900 px-4 py-2 rounded-lg text-sm font-semibold transition shadow-md">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i> Nueva Reservación
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-grow w-full space-y-6">
+
+        <!-- Panel de Estadísticas Rápidas (KPIs) -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Eventos Este Mes</p>
+                    <h3 id="kpi-total-events" class="text-2xl font-bold text-slate-900 mt-1">0</h3>
+                </div>
+                <div class="bg-blue-50 text-blue-600 p-3 rounded-xl">
+                    <i data-lucide="calendar-check" class="w-6 h-6"></i>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Ingresos Estimados</p>
+                    <h3 id="kpi-total-income" class="text-2xl font-bold text-emerald-600 mt-1">$0 MXN</h3>
+                </div>
+                <div class="bg-emerald-50 text-emerald-600 p-3 rounded-xl">
+                    <i data-lucide="dollar-sign" class="w-6 h-6"></i>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Días Ocupados</p>
+                    <h3 id="kpi-busy-days" class="text-2xl font-bold text-amber-600 mt-1">0 días</h3>
+                </div>
+                <div class="bg-amber-50 text-amber-600 p-3 rounded-xl">
+                    <i data-lucide="users" class="w-6 h-6"></i>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Días Libres En Mes</p>
+                    <h3 id="kpi-free-days" class="text-2xl font-bold text-slate-700 mt-1">0 días</h3>
+                </div>
+                <div class="bg-slate-100 text-slate-600 p-3 rounded-xl">
+                    <i data-lucide="calendar" class="w-6 h-6"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contenedor del Calendario -->
+        <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <!-- Barra de Navegación del Calendario -->
+            <div class="px-6 py-4 border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
+                <div class="flex items-center gap-3">
+                    <h2 id="current-month-year" class="text-xl font-bold text-slate-900 capitalize">Cargando...</h2>
+                    <span id="event-badge-count" class="bg-slate-100 text-slate-700 text-xs px-2.5 py-1 rounded-full font-medium">0 Eventos</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="app.prevMonth()" class="p-2 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 transition flex items-center gap-1 text-sm font-medium">
+                        <i data-lucide="chevron-left" class="w-4 h-4"></i> Mes Anterior
+                    </button>
+                    <button onclick="app.goToToday()" class="px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 transition text-sm font-medium">
+                        Hoy
+                    </button>
+                    <button onclick="app.nextMonth()" class="p-2 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 transition flex items-center gap-1 text-sm font-medium">
+                        Siguiente Mes <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Días de la Semana -->
+            <div class="grid grid-cols-7 bg-slate-100 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider py-3 border-b border-slate-200">
+                <div>Dom</div>
+                <div>Lun</div>
+                <div>Mar</div>
+                <div>Mié</div>
+                <div>Jue</div>
+                <div>Vie</div>
+                <div>Sáb</div>
+            </div>
+
+            <!-- Cuadrícula de Días (Generada por JavaScript) -->
+            <div id="calendar-grid" class="grid grid-cols-7 auto-rows-fr bg-slate-200 gap-px">
+                <!-- Los días se insertan dinámicamente aquí -->
+            </div>
+        </section>
+
+        <!-- Leyenda de Colores -->
+        <section class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-center gap-6 text-xs font-medium text-slate-600">
+            <div class="flex items-center gap-2">
+                <span class="w-3.5 h-3.5 rounded-full bg-blue-500 inline-block"></i></span> Evento Entre Semana
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-3.5 h-3.5 rounded-full bg-indigo-500 inline-block"></span> Evento Fin Semana
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-3.5 h-3.5 rounded-full bg-purple-600 inline-block"></span> Evento Día Festivo
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-3.5 h-3.5 rounded-full bg-amber-500 inline-block"></span> Day Pass / Público
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-3.5 h-3.5 rounded-full bg-slate-200 inline-block border border-slate-300"></span> Día Disponible
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal de Detalles / Agregar Reservación -->
+    <div id="reservation-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 transform transition-all">
+            <!-- Modal Header -->
+            <div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between">
+                <h3 id="modal-title" class="text-lg font-bold">Detalles De La Reservación</h3>
+                <button onclick="app.closeModal()" class="text-slate-400 hover:text-white p-1 rounded-lg transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div id="modal-body" class="p-6 max-h-[80vh] overflow-y-auto space-y-4">
+                <!-- Contenido dinámico inyectado por JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificación Toast Flotante -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300">
+        <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400"></i>
+        <span id="toast-message" class="text-sm font-medium">Acción Realizada Con éxito</span>
+    </div>
+
+    <!-- Script de la Aplicación -->
+    <script>
+        // Datos y Lógica de la Aplicación
+        class QuintaApp {
+            constructor() {
+                this.currentDate = new Date();
+                this.reservations = JSON.parse(localStorage.getItem('quinta_reservations')) || [
+                    {
+                        id: 'RES-101',
+                        date: '2026-06-06',
+                        clientName: 'Carlos Mendoza',
+                        phone: '477-123-4567',
+                        eventType: 'Evento Grande',
+                        peopleCount: 65,
+                        timeSlot: '12:00 PM - 8:00 PM',
+                        extraHours: 1,
+                        totalPrice: 5200,
+                        advancePayment: 2600,
+                        paymentStatus: 'Anticipado',
+                        notes: 'Incluye paquete parrillada mixta'
+                    },
+                    {
+                        id: 'RES-102',
+                        date: '2026-06-07',
+                        clientName: 'Sofía Valenzuela',
+                        phone: '477-987-6543',
+                        eventType: 'Festejo Mediano',
+                        peopleCount: 40,
+                        timeSlot: '1:00 PM - 9:00 PM',
+                        extraHours: 0,
+                        totalPrice: 4000,
+                        advancePayment: 4000,
+                        paymentStatus: 'Liquidado',
+                        notes: 'Cumpleaños infantil'
+                    },
+                    {
+                        id: 'RES-103',
+                        date: '2026-06-13',
+                        clientName: 'Roberto Garza',
+                        phone: '477-555-1234',
+                        eventType: 'Convivio Íntimo',
+                        peopleCount: 25,
+                        timeSlot: '2:00 PM - 10:00 PM',
+                        extraHours: 0,
+                        totalPrice: 3200,
+                        advancePayment: 1500,
+                        paymentStatus: 'Anticipado',
+                        notes: 'Uso de billar y bocina'
+                    },
+                    {
+                        id: 'RES-104',
+                        date: '2026-06-14',
+                        clientName: 'Acceso Público (Day Pass)',
+                        phone: 'N/A',
+                        eventType: 'Day Pass',
+                        peopleCount: 30,
+                        timeSlot: '11:00 AM - 7:00 PM',
+                        extraHours: 0,
+                        totalPrice: 9000,
+                        advancePayment: 9000,
+                        paymentStatus: 'Liquidado',
+                        notes: 'Apertura general con paquetes de alitas y boneless'
+                    }
+                ];
+                this.init();
+            }
+
+            init() {
+                this.renderCalendar();
+                this.updateKPIs();
+                lucide.createIcons();
+            }
+
+            saveToLocalStorage() {
+                localStorage.setItem('quinta_reservations', JSON.stringify(this.reservations));
+            }
+
+            showToast(message) {
+                const toast = document.getElementById('toast');
+                document.getElementById('toast-message').textContent = message;
+                toast.classList.remove('translate-y-20', 'opacity-0');
+                setTimeout(() => {
+                    toast.classList.add('translate-y-20', 'opacity-0');
+                }, 3500);
+            }
+
+            prevMonth() {
+                this.currentDate.setMonth(this.currentDate.getMonth() - 1);
+                this.renderCalendar();
+            }
+
+            nextMonth() {
+                this.currentDate.setMonth(this.currentDate.getMonth() + 1);
+                this.renderCalendar();
+            }
+
+            goToToday() {
+                this.currentDate = new Date();
+                this.renderCalendar();
+            }
+
+            renderCalendar() {
+                const year = this.currentDate.getFullYear();
+                const month = this.currentDate.getMonth();
+
+                const monthsNames = [
+                    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+                ];
+
+                document.getElementById('current-month-year').textContent = `${monthsNames[month]} ${year}`;
+
+                const firstDayIndex = new Date(year, month, 1).getDay();
+                const lastDay = new Date(year, month + 1, 0).getDate();
+                const prevLastDay = new Date(year, month, 0).getDate();
+
+                const grid = document.getElementById('calendar-grid');
+                grid.innerHTML = '';
+
+                let totalMonthEvents = 0;
+                let daysWithEventsCount = new Set();
+
+                // Días del mes anterior (Rellenos)
+                for (let i = firstDayIndex; i > 0; i--) {
+                    const dayNum = prevLastDay - i + 1;
+                    const cell = document.createElement('div');
+                    cell.className = 'bg-slate-50/60 min-h-[110px] p-2 text-slate-400 opacity-50 flex flex-col justify-between';
+                    cell.innerHTML = `<span class="text-xs font-semibold">${dayNum}</span>`;
+                    grid.appendChild(cell);
+                }
+
+                // Días del mes actual
+                for (let day = 1; day <= lastDay; day++) {
+                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const dayReservations = this.reservations.filter(r => r.date === dateStr);
+
+                    if (dayReservations.length > 0) {
+                        daysWithEventsCount.add(dateStr);
+                        totalMonthEvents += dayReservations.length;
+                    }
+
+                    const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
+
+                    const cell = document.createElement('div');
+                    cell.className = `bg-white min-h-[120px] p-2 flex flex-col justify-between transition hover:bg-slate-50 cursor-pointer border-t border-slate-100 ${isToday ? 'ring-2 ring-amber-500 ring-inset' : ''}`;
+                    cell.onclick = () => this.handleDayClick(dateStr);
+
+                    let badgesHTML = '';
+                    dayReservations.forEach(res => {
+                        let badgeColor = 'bg-blue-500 text-white';
+                        if (res.eventType === 'Evento Fin Semana') badgeColor = 'bg-indigo-500 text-white';
+                        if (res.eventType === 'Evento Día Festivo') badgeColor = 'bg-purple-600 text-white';
+                        if (res.eventType === 'Day Pass') badgeColor = 'bg-amber-500 text-slate-900 font-semibold';
+
+                        badgesHTML += `
+                            <div class="${badgeColor} text-[11px] px-2 py-1 rounded-md shadow-xs truncate flex items-center justify-between gap-1 mb-1">
+                                <span class="truncate font-medium">${res.clientName}</span>
+                                <span class="text-[10px] opacity-90">(${res.peopleCount}p)</span>
+                            </div>
+                        `;
+                    });
+
+                    cell.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold ${isToday ? 'bg-amber-500 text-slate-900 w-6 h-6 rounded-full flex items-center justify-center' : 'text-slate-700'}">${day}</span>
+                            ${dayReservations.length > 0 ? `<span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium">${dayReservations.length} evento(s)</span>` : '<span class="text-[10px] text-emerald-600 font-medium">Disponible</span>'}
+                        </div>
+                        <div class="mt-1 space-y-1 overflow-y-auto max-h-[75px]">
+                            ${badgesHTML}
+                        </div>
+                    `;
+                    grid.appendChild(cell);
+                }
+
+                // Días del siguiente mes para completar la cuadrícula (42 celdas total)
+                const totalCells = firstDayIndex + lastDay;
+                const nextDaysCount = totalCells <= 35 ? 35 - totalCells : 42 - totalCells;
+                for (let i = 1; i <= nextDaysCount; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'bg-slate-50/60 min-h-[110px] p-2 text-slate-400 opacity-50 flex flex-col justify-between';
+                    cell.innerHTML = `<span class="text-xs font-semibold">${i}</span>`;
+                    grid.appendChild(cell);
+                }
+
+                document.getElementById('event-badge-count').textContent = `${totalMonthEvents} evento(s) en ${monthsNames[month]}`;
+                this.updateKPIs(month, year, daysWithEventsCount.size, lastDay, totalMonthEvents);
+            }
+
+            updateKPIs(month, year, busyDaysCount, totalDaysInMonth, totalEvents) {
+                let monthIncome = 0;
+                this.reservations.forEach(r => {
+                    const rDate = new Date(r.date + 'T00:00:00');
+                    if (rDate.getMonth() === month && rDate.getFullYear() === year) {
+                        monthIncome += Number(r.totalPrice) || 0;
+                    }
+                });
+
+                document.getElementById('kpi-total-events').textContent = totalEvents;
+                document.getElementById('kpi-total-income').textContent = `$${monthIncome.toLocaleString()} MXN`;
+                document.getElementById('kpi-busy-days').textContent = `${busyDaysCount || 0} días`;
+                document.getElementById('kpi-free-days').textContent = `${(totalDaysInMonth || 30) - (busyDaysCount || 0)} días`;
+            }
+
+            handleDayClick(dateStr) {
+                const dayReservations = this.reservations.filter(r => r.date === dateStr);
+                const modal = document.getElementById('reservation-modal');
+                const modalTitle = document.getElementById('modal-title');
+                const modalBody = document.getElementById('modal-body');
+
+                modalTitle.textContent = `Reservaciones para el ${dateStr}`;
+                
+                let html = '';
+                if (dayReservations.length > 0) {
+                    html += `<div class="space-y-4">`;
+                    dayReservations.forEach((res, idx) => {
+                        html += `
+                            <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-2 relative">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-bold px-2 py-0.5 rounded bg-slate-900 text-white">${res.eventType}</span>
+                                    <span class="text-xs font-semibold text-emerald-600">Estatus: ${res.paymentStatus}</span>
+                                </div>
+                                <h4 class="font-bold text-slate-900 text-base">${res.clientName}</h4>
+                                <div class="grid grid-cols-2 gap-2 text-xs text-slate-600">
+                                    <div><span class="font-semibold">Teléfono:</span> ${res.phone}</div>
+                                    <div><span class="font-semibold">Asistentes:</span> ${res.peopleCount} personas</div>
+                                    <div><span class="font-semibold">Horario:</span> ${res.timeSlot}</div>
+                                    <div><span class="font-semibold">Horas Extra:</span> ${res.extraHours} hrs</div>
+                                    <div><span class="font-semibold">Total:</span> $${res.totalPrice.toLocaleString()} MXN</div>
+                                    <div><span class="font-semibold">Anticipo:</span> $${res.advancePayment.toLocaleString()} MXN</div>
+                                </div>
+                                ${res.notes ? `<p class="text-xs text-slate-500 italic mt-1 bg-white p-2 rounded border border-slate-100">Nota: ${res.notes}</p>` : ''}
+                                <div class="flex justify-end gap-2 pt-2 border-t border-slate-200">
+                                    <button onclick="app.deleteReservation('${res.id}')" class="text-red-600 hover:text-red-800 text-xs font-medium flex items-center gap-1 bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded-lg transition">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                } else {
+                    html += `
+                        <div class="text-center py-6 space-y-2">
+                            <div class="bg-emerald-50 text-emerald-600 w-12 h-12 rounded-full flex items-center justify-center mx-auto">
+                                <i data-lucide="calendar-check" class="w-6 h-6"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-800 text-base">Día Disponible</h4>
+                            <p class="text-xs text-slate-500">No hay eventos registrados para el ${dateStr}. Puedes agendar una nueva reservación en este día.</p>
+                        </div>
+                    `;
+                }
+
+                html += `
+                    <div class="pt-4 border-t border-slate-200 flex justify-between items-center">
+                        <button onclick="app.openNewModalForDate('${dateStr}')" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-semibold py-2.5 px-4 rounded-xl text-sm transition shadow-sm flex items-center justify-center gap-2">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Agregar Reservación en esta Fecha
+                        </button>
+                    </div>
+                `;
+
+                modalBody.innerHTML = html;
+                modal.classList.remove('hidden');
+                lucide.createIcons();
+            }
+
+            openNewModal() {
+                const todayStr = new Date().toISOString().split('T')[0];
+                this.openNewModalForDate(todayStr);
+            }
+
+            openNewModalForDate(dateStr) {
+                const modal = document.getElementById('reservation-modal');
+                const modalTitle = document.getElementById('modal-title');
+                const modalBody = document.getElementById('modal-body');
+
+                modalTitle.textContent = "Registrar Nueva Reservación";
+                modalBody.innerHTML = `
+                    <form id="new-res-form" onsubmit="app.handleFormSubmit(event)" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha del Evento</label>
+                            <input type="date" id="form-date" value="${dateStr}" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre del Cliente</label>
+                                <input type="text" id="form-client" placeholder="Ej. Juan Pérez" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Teléfono</label>
+                                <input type="text" id="form-phone" placeholder="Ej. 477-123-4567" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tipo de Evento</label>
+                                <select id="form-type" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                                    <option value="Evento Entre Semana">Evento Entre Semana</option>
+                                    <option value="Evento Fin Semana">Evento Fin Semana</option>
+                                    <option value="Evento Día Festivo">Evento Día Festivo</option>
+                                    <option value="Day Pass">Day Pass / Público</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Número de Personas</label>
+                                <input type="number" id="form-people" min="1" max="80" value="30" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Horario</label>
+                                <input type="text" id="form-timeslot" value="12:00 PM - 8:00 PM" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Horas Extra</label>
+                                <input type="number" id="form-extrahours" min="0" value="0" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Precio Total ($)</label>
+                                <input type="number" id="form-total" value="4000" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Anticipo ($)</label>
+                                <input type="number" id="form-advance" value="2000" required class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Estatus Pago</label>
+                                <select id="form-status" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                                    <option value="Anticipado">Anticipado</option>
+                                    <option value="Liquidado">Liquidado</option>
+                                    <option value="Pendiente">Pendiente</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Notas / Requerimientos</label>
+                            <textarea id="form-notes" placeholder="Ej. Requiere paquetes de alitas y bocina Bluetooth" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none" rows="2"></textarea>
+                        </div>
+                        <div class="pt-3">
+                            <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-sm transition shadow-md">
+                                Guardar Reservación
+                            </button>
+                        </div>
+                    </form>
+                `;
+                modal.classList.remove('hidden');
+                lucide.createIcons();
+            }
+
+            handleFormSubmit(event) {
+                event.preventDefault();
+                const newRes = {
+                    id: 'RES-' + Math.floor(1000 + Math.random() * 9000),
+                    date: document.getElementById('form-date').value,
+                    clientName: document.getElementById('form-client').value,
+                    phone: document.getElementById('form-phone').value,
+                    eventType: document.getElementById('form-type').value,
+                    peopleCount: Number(document.getElementById('form-people').value),
+                    timeSlot: document.getElementById('form-timeslot').value,
+                    extraHours: Number(document.getElementById('form-extrahours').value),
+                    totalPrice: Number(document.getElementById('form-total').value),
+                    advancePayment: Number(document.getElementById('form-advance').value),
+                    paymentStatus: document.getElementById('form-status').value,
+                    notes: document.getElementById('form-notes').value
+                };
+
+                this.reservations.push(newRes);
+                this.saveToLocalStorage();
+                this.closeModal();
+                this.renderCalendar();
+                this.showToast('¡Reservación creada exitosamente!');
+            }
+
+            deleteReservation(id) {
+                if (confirm('¿Está seguro de eliminar esta reservación?')) {
+                    this.reservations = this.reservations.filter(r => r.id !== id);
+                    this.saveToLocalStorage();
+                    this.closeModal();
+                    this.renderCalendar();
+                    this.showToast('Reservación eliminada correctamente.');
+                }
+            }
+
+            closeModal() {
+                document.getElementById('reservation-modal').classList.add('hidden');
+            }
+
+            exportData() {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.reservations, null, 2));
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", "reservaciones_quinta.json");
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+                this.showToast('Datos exportados correctamente.');
+            }
+        }
+
+        // Instanciar Aplicación
+        const app = new QuintaApp();
+    </script>
+</body>
+</html>
